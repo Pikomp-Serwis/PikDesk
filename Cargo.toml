@@ -5,7 +5,7 @@ authors = ["Pikomp <serwis@pikomp.com>"]
 edition = "2021"
 build= "build.rs"
 description = "A remote control software."
-default-run = "polidesk"
+default-run = "rustdesk"
 
 [lib]
 name = "librustdesk"
