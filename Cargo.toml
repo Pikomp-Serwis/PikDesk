@@ -1,11 +1,11 @@
 [package]
-name = "rustdesk"
+name = "polidesk"
 version = "1.2.0"
 authors = ["Pikomp <serwis@pikomp.com>"]
 edition = "2021"
 build= "build.rs"
 description = "A remote control software."
-default-run = "rustdesk"
+default-run = "polidesk"
 
 [lib]
 name = "librustdesk"
