@@ -1,11 +1,11 @@
 [package]
-name = "polidesk"
-version = "1.0.0"
+name = "rustdesk"
+version = "1.2.0"
 authors = ["Pikomp <serwis@pikomp.com>"]
 edition = "2021"
 build= "build.rs"
 description = "A remote control software."
-default-run = "polidesk"
+default-run = "rustdesk"
 
 [lib]
 name = "librustdesk"
@@ -133,7 +133,7 @@ members = ["libs/scrap", "libs/hbb_common", "libs/enigo", "libs/clipboard", "lib
 [package.metadata.winres]
 LegalCopyright = "Copyright © 2022 Purslane, Inc."
 # this FileDescription overrides package.description
-FileDescription = "PoliDesk"
+FileDescription = "RustDesk"
 
 [target.'cfg(target_os="windows")'.build-dependencies]
 winres = "0.1"
@@ -149,8 +149,8 @@ flutter_rust_bridge_codegen = "1.61.1"
 hound = "3.5"
 
 [package.metadata.bundle]
-name = "PoliDesk"
-identifier = "com.pikomp.polidesk"
+name = "RustDesk"
+identifier = "com.pikomp.rustdesk"
 icon = ["res/32x32.png", "res/128x128.png", "res/128x128@2x.png"]
 deb_depends = ["libgtk-3-0", "libxcb-randr0", "libxdo3", "libxfixes3", "libxcb-shape0", "libxcb-xfixes0", "libasound2", "libsystemd0", "curl", "libvdpau1", "libva2"]
 osx_minimum_system_version = "10.14"
