@@ -6,15 +6,15 @@ on:
     paths-ignore:
     - "docs/**"
     - "README.md"
-  push:
-    branches:
-      - master
-    tags:
-      - '*'
-    paths-ignore:
-      - ".github/**"
-      - "docs/**"
-      - "README.md"
+#  push:
+#    branches:
+#      - master
+#    tags:
+#      - '*'
+#    paths-ignore:
+#      - ".github/**"
+#      - "docs/**"
+#      - "README.md"
 
 env:
   LLVM_VERSION: "15.0.6"

@@ -10,15 +10,15 @@ on:
     paths-ignore:
       - "docs/**"
       - "README.md"
-  push:
-    branches:
-      - master
-    tags:
-      - '*'
-    paths-ignore:
-      - ".github/**"
-      - "docs/**"
-      - "README.md"
+#  push:
+#    branches:
+#      - master
+#    tags:
+#      - '*'
+#    paths-ignore:
+#      - ".github/**"
+#      - "docs/**"
+#      - "README.md"
 
 jobs:
   # ensure_cargo_fmt:
