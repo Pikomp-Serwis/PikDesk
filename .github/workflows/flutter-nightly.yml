@@ -61,9 +61,9 @@ jobs:
           override: true
           profile: minimal # minimal component installation (ie, no documentation)
 
-      #- uses: Swatinem/rust-cache@v2
-      #  with:
-      #    prefix-key: ${{ matrix.job.os }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ matrix.job.os }}
 
       - name: Install flutter rust bridge deps
         run: |
