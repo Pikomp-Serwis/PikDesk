@@ -102,7 +102,7 @@ jobs:
           python3 ./generate.py -f ../../flutter/build/windows/runner/Release/ -o . -e ../../flutter/build/windows/runner/Release/polidesk.exe
           popd
           mkdir -p ./SignOutput
-          mv ./target/release/polidesk-portable-packer.exe ./SignOutput/polidesk-${{ env.VERSION }}-${{ matrix.job.target }}.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/polidesk-${{ env.VERSION }}-${{ matrix.job.target }}.exe
 
       # - name: Rename rustdesk
       #   shell: bash

@@ -356,10 +356,10 @@ def build_flutter_windows(version, features):
         f'python3 ./generate.py -f ../../{flutter_win_target_dir} -o . -e ../../{flutter_win_target_dir}/polidesk.exe')
     os.chdir('../..')
     if os.path.exists('./polidesk_portable.exe'):
-        os.replace('./target/release/polidesk-portable-packer.exe',
+        os.replace('./target/release/rustdesk-portable-packer.exe',
                    './polidesk_portable.exe')
     else:
-        os.rename('./target/release/polidesk-portable-packer.exe',
+        os.rename('./target/release/rustdesk-portable-packer.exe',
                   './polidesk_portable.exe')
     print(
         f'output location: {os.path.abspath(os.curdir)}/polidesk_portable.exe')
@@ -413,7 +413,7 @@ def main():
         else:
             print('Not signed')
         os.system(
-            f'cp -rf target/release/PoliDesk.exe rustdesk-{version}-win7-install.exe')
+            f'cp -rf target/release/PoliDesk.exe polidesk-{version}-win7-install.exe')
     elif os.path.isfile('/usr/bin/pacman'):
         # pacman -S -needed base-devel
         os.system("sed -i 's/pkgver=.*/pkgver=%s/g' res/PKGBUILD" % version)
