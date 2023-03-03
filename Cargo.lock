@@ -4170,7 +4170,7 @@ dependencies = [
 
 [[package]]
 name = "polidesk"
-version = "1.0.0"
+version = "1.2.0"
 dependencies = [
  "android_logger 0.11.1",
  "arboard",

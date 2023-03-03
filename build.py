@@ -353,7 +353,7 @@ def build_flutter_windows(version, features):
     os.chdir('libs/portable')
     os.system('pip3 install -r requirements.txt')
     os.system(
-        f'python3 ./generate.py -f ../../{flutter_win_target_dir} -o . -e ../../{flutter_win_target_dir}/rustdesk.exe')
+        f'python3 ./generate.py -f ../../{flutter_win_target_dir} -o . -e ../../{flutter_win_target_dir}/polidesk.exe')
     os.chdir('../..')
     if os.path.exists('./rustdesk_portable.exe'):
         os.replace('./target/release/rustdesk-portable-packer.exe',
@@ -403,17 +403,17 @@ def main():
             build_flutter_windows(version, features)
             return
         os.system('cargo build --release --features ' + features)
-        # os.system('upx.exe target/release/rustdesk.exe')
-        os.system('mv target/release/rustdesk.exe target/release/RustDesk.exe')
+        # os.system('upx.exe target/release/polidesk.exe')
+        os.system('mv target/release/polidesk.exe target/release/PoliDesk.exe')
         pa = os.environ.get('P')
         if pa:
             os.system(
                 f'signtool sign /a /v /p {pa} /debug /f .\\cert.pfx /t http://timestamp.digicert.com  '
-                'target\\release\\rustdesk.exe')
+                'target\\release\\polidesk.exe')
         else:
             print('Not signed')
         os.system(
-            f'cp -rf target/release/RustDesk.exe rustdesk-{version}-win7-install.exe')
+            f'cp -rf target/release/PoliDesk.exe rustdesk-{version}-win7-install.exe')
     elif os.path.isfile('/usr/bin/pacman'):
         # pacman -S -needed base-devel
         os.system("sed -i 's/pkgver=.*/pkgver=%s/g' res/PKGBUILD" % version)
