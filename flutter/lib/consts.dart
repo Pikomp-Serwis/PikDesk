@@ -2,37 +2,90 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/models/state_model.dart';
+import 'package:get/get.dart';
+
+const int kMaxVirtualDisplayCount = 4;
+const int kAllVirtualDisplay = -1;
 
 const double kDesktopRemoteTabBarHeight = 28.0;
+const int kInvalidWindowId = -1;
 const int kMainWindowId = 0;
+
+const kAllDisplayValue = -1;
+
+const kKeyLegacyMode = 'legacy';
+const kKeyMapMode = 'map';
+const kKeyTranslateMode = 'translate';
+
+const String kPlatformAdditionsIsWayland = "is_wayland";
+const String kPlatformAdditionsHeadless = "headless";
+const String kPlatformAdditionsIsInstalled = "is_installed";
+const String kPlatformAdditionsVirtualDisplays = "virtual_displays";
+const String kPlatformAdditionsHasFileClipboard = "has_file_clipboard";
+const String kPlatformAdditionsSupportedPrivacyModeImpl = "supported_privacy_mode_impl";
 
 const String kPeerPlatformWindows = "Windows";
 const String kPeerPlatformLinux = "Linux";
 const String kPeerPlatformMacOS = "Mac OS";
 const String kPeerPlatformAndroid = "Android";
 
+const double kScrollbarThickness = 12.0;
+
 /// [kAppTypeMain] used by 'Desktop Main Page' , 'Mobile (Client and Server)', "Install Page"
 const String kAppTypeMain = "main";
+
+/// [kAppTypeConnectionManager] only for 'Desktop CM Page'
 const String kAppTypeConnectionManager = "cm";
+
 const String kAppTypeDesktopRemote = "remote";
 const String kAppTypeDesktopFileTransfer = "file transfer";
 const String kAppTypeDesktopPortForward = "port forward";
 
 const String kWindowMainWindowOnTop = "main_window_on_top";
 const String kWindowGetWindowInfo = "get_window_info";
+const String kWindowGetScreenList = "get_screen_list";
+// This method is not used, maybe it can be removed.
 const String kWindowDisableGrabKeyboard = "disable_grab_keyboard";
 const String kWindowActionRebuild = "rebuild";
 const String kWindowEventHide = "hide";
 const String kWindowEventShow = "show";
 const String kWindowConnect = "connect";
 
+const String kWindowEventNewRemoteDesktop = "new_remote_desktop";
+const String kWindowEventNewFileTransfer = "new_file_transfer";
+const String kWindowEventNewPortForward = "new_port_forward";
+const String kWindowEventActiveSession = "active_session";
+const String kWindowEventActiveDisplaySession = "active_display_session";
+const String kWindowEventGetRemoteList = "get_remote_list";
+const String kWindowEventGetSessionIdList = "get_session_id_list";
+
+const String kWindowEventMoveTabToNewWindow = "move_tab_to_new_window";
+const String kWindowEventGetCachedSessionData = "get_cached_session_data";
+const String kWindowEventOpenMonitorSession = "open_monitor_session";
+
+const String kOptionOpenNewConnInTabs = "enable-open-new-connections-in-tabs";
+const String kOptionOpenInTabs = "allow-open-in-tabs";
+const String kOptionOpenInWindows = "allow-open-in-windows";
+const String kOptionForceAlwaysRelay = "force-always-relay";
+
 const String kUniLinksPrefix = "rustdesk://";
+const String kUrlActionClose = "close";
 
 const String kTabLabelHomePage = "Home";
 const String kTabLabelSettingPage = "Settings";
 
 const String kWindowPrefix = "wm_";
 const int kWindowMainId = 0;
+
+const String kPointerEventKindTouch = "touch";
+const String kPointerEventKindMouse = "mouse";
+
+const String kKeyShowDisplaysAsIndividualWindows =
+    'displays_as_individual_windows';
+const String kKeyUseAllMyDisplaysForTheRemoteSession =
+    'use_all_my_displays_for_the_remote_session';
+const String kKeyShowMonitorsToolbar = 'show_monitors_toolbar';
 
 // the executable name of the portable version
 const String kEnvPortableExecutable = "RUSTDESK_APPNAME";
@@ -45,17 +98,35 @@ const int kMobileDefaultDisplayHeight = 1280;
 const int kDesktopDefaultDisplayWidth = 1080;
 const int kDesktopDefaultDisplayHeight = 720;
 
-const int kMobileMaxDisplayWidth = 720;
-const int kMobileMaxDisplayHeight = 1280;
+const int kMobileMaxDisplaySize = 1280;
+const int kDesktopMaxDisplaySize = 3840;
 
-const int kDesktopMaxDisplayWidth = 1920;
-const int kDesktopMaxDisplayHeight = 1080;
-
-const double kDesktopFileTransferNameColWidth = 200;
-const double kDesktopFileTransferModifiedColWidth = 120;
-const double kDesktopFileTransferRowHeight = 25.0;
+const double kDesktopFileTransferRowHeight = 30.0;
 const double kDesktopFileTransferHeaderHeight = 25.0;
 
+const double kMinFps = 5;
+const double kDefaultFps = 30;
+const double kMaxFps = 120;
+
+const double kMinQuality = 10;
+const double kDefaultQuality = 50;
+const double kMaxQuality = 100;
+const double kMaxMoreQuality = 2000;
+
+double kNewWindowOffset = Platform.isWindows
+    ? 56.0
+    : Platform.isLinux
+        ? 50.0
+        : Platform.isMacOS
+            ? 30.0
+            : 50.0;
+
+EdgeInsets get kDragToResizeAreaPadding =>
+    !kUseCompatibleUiMode && Platform.isLinux
+        ? stateGlobal.fullscreen.isTrue || stateGlobal.isMaximized.value
+            ? EdgeInsets.zero
+            : EdgeInsets.all(5.0)
+        : EdgeInsets.zero;
 // https://en.wikipedia.org/wiki/Non-breaking_space
 const int $nbsp = 0x00A0;
 
@@ -63,7 +134,8 @@ extension StringExtension on String {
   String get nonBreaking => replaceAll(' ', String.fromCharCode($nbsp));
 }
 
-const Size kConnectionManagerWindowSize = Size(300, 400);
+const Size kConnectionManagerWindowSizeClosedChat = Size(300, 490);
+const Size kConnectionManagerWindowSizeOpenChat = Size(700, 490);
 // Tabbar transition duration, now we remove the duration
 const Duration kTabTransitionDuration = Duration.zero;
 const double kEmptyMarginTop = 50;
@@ -77,6 +149,7 @@ const kDefaultScrollAmountMultiplier = 5.0;
 const kDefaultScrollDuration = Duration(milliseconds: 50);
 const kDefaultMouseWheelThrottleDuration = Duration(milliseconds: 50);
 const kFullScreenEdgeSize = 0.0;
+const kMaximizeEdgeSize = 0.0;
 var kWindowEdgeSize = Platform.isWindows ? 1.0 : 5.0;
 const kWindowBorderWidth = 1.0;
 const kDesktopMenuPadding = EdgeInsets.only(left: 12.0, right: 3.0);
@@ -107,6 +180,12 @@ const kRemoteScrollStyleAuto = 'scrollauto';
 /// [kRemoteScrollStyleBar] Scroll image with scroll bar.
 const kRemoteScrollStyleBar = 'scrollbar';
 
+/// [kScrollModeDefault] Mouse or touchpad, the default scroll mode.
+const kScrollModeDefault = 'default';
+
+/// [kScrollModeReverse] Mouse or touchpad, the reverse scroll mode.
+const kScrollModeReverse = 'reverse';
+
 /// [kRemoteImageQualityBest] Best image quality.
 const kRemoteImageQualityBest = 'best';
 
@@ -126,6 +205,31 @@ const kRemoteAudioGuestToHost = 'guest-to-host';
 const kRemoteAudioDualWay = 'dual-way';
 
 const kIgnoreDpi = true;
+
+// ================================ mobile ================================
+
+// Magic numbers, maybe need to avoid it or use a better way to get them.
+const kMobileDelaySoftKeyboard = Duration(milliseconds: 30);
+const kMobileDelaySoftKeyboardFocus = Duration(milliseconds: 30);
+
+/// Android constants
+const kActionApplicationDetailsSettings =
+    "android.settings.APPLICATION_DETAILS_SETTINGS";
+const kActionAccessibilitySettings = "android.settings.ACCESSIBILITY_SETTINGS";
+
+const kRecordAudio = "android.permission.RECORD_AUDIO";
+const kManageExternalStorage = "android.permission.MANAGE_EXTERNAL_STORAGE";
+const kRequestIgnoreBatteryOptimizations =
+    "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS";
+const kSystemAlertWindow = "android.permission.SYSTEM_ALERT_WINDOW";
+
+/// Android channel invoke type key
+class AndroidChannel {
+  static final kStartAction = "start_action";
+  static final kGetStartOnBootOpt = "get_start_on_boot_opt";
+  static final kSetStartOnBootOpt = "set_start_on_boot_opt";
+  static final kSyncAppDirConfigPath = "sync_app_dir";
+}
 
 /// flutter/packages/flutter/lib/src/services/keyboard_key.dart -> _keyLabels
 /// see [LogicalKeyboardKey.keyLabel]

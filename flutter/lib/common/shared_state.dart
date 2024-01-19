@@ -1,3 +1,4 @@
+import 'package:flutter_hbb/common.dart';
 import 'package:get/get.dart';
 
 import '../consts.dart';
@@ -10,7 +11,7 @@ class PrivacyModeState {
   static void init(String id) {
     final key = tag(id);
     if (!Get.isRegistered(tag: key)) {
-      final RxBool state = false.obs;
+      final RxString state = ''.obs;
       Get.put(state, tag: key);
     }
   }
@@ -19,10 +20,12 @@ class PrivacyModeState {
     final key = tag(id);
     if (Get.isRegistered(tag: key)) {
       Get.delete(tag: key);
+    } else {
+      Get.find<RxString>(tag: key).value = '';
     }
   }
 
-  static RxBool find(String id) => Get.find<RxBool>(tag: tag(id));
+  static RxString find(String id) => Get.find<RxString>(tag: tag(id));
 }
 
 class BlockInputState {
@@ -33,6 +36,8 @@ class BlockInputState {
     if (!Get.isRegistered(tag: key)) {
       final RxBool state = false.obs;
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxBool>(tag: key).value = false;
     }
   }
 
@@ -54,6 +59,8 @@ class CurrentDisplayState {
     if (!Get.isRegistered(tag: key)) {
       final RxInt state = RxInt(0);
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxInt>(tag: key).value = 0;
     }
   }
 
@@ -115,6 +122,29 @@ class ConnectionTypeState {
       Get.find<ConnectionType>(tag: tag(id));
 }
 
+class FingerprintState {
+  static String tag(String id) => 'fingerprint_$id';
+
+  static void init(String id) {
+    final key = tag(id);
+    if (!Get.isRegistered(tag: key)) {
+      final RxString state = ''.obs;
+      Get.put(state, tag: key);
+    } else {
+      Get.find<RxString>(tag: key).value = '';
+    }
+  }
+
+  static void delete(String id) {
+    final key = tag(id);
+    if (Get.isRegistered(tag: key)) {
+      Get.delete(tag: key);
+    }
+  }
+
+  static RxString find(String id) => Get.find<RxString>(tag: tag(id));
+}
+
 class ShowRemoteCursorState {
   static String tag(String id) => 'show_remote_cursor_$id';
 
@@ -123,6 +153,8 @@ class ShowRemoteCursorState {
     if (!Get.isRegistered(tag: key)) {
       final RxBool state = false.obs;
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxBool>(tag: key).value = false;
     }
   }
 
@@ -145,6 +177,8 @@ class KeyboardEnabledState {
       // Server side, default true
       final RxBool state = true.obs;
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxBool>(tag: key).value = true;
     }
   }
 
@@ -164,9 +198,10 @@ class RemoteCursorMovedState {
   static void init(String id) {
     final key = tag(id);
     if (!Get.isRegistered(tag: key)) {
-      // Server side, default true
       final RxBool state = false.obs;
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxBool>(tag: key).value = false;
     }
   }
 
@@ -186,9 +221,10 @@ class RemoteCountState {
   static void init() {
     final key = tag();
     if (!Get.isRegistered(tag: key)) {
-      // Server side, default true
       final RxInt state = 1.obs;
       Get.put(state, tag: key);
+    } else {
+      Get.find<RxInt>(tag: key).value = 1;
     }
   }
 
@@ -210,6 +246,8 @@ class PeerBoolOption {
     if (!Get.isRegistered(tag: key)) {
       final RxBool value = RxBool(init_getter());
       Get.put(value, tag: key);
+    } else {
+      Get.find<RxBool>(tag: key).value = init_getter();
     }
   }
 
@@ -232,6 +270,8 @@ class PeerStringOption {
     if (!Get.isRegistered(tag: key)) {
       final RxString value = RxString(init_getter());
       Get.put(value, tag: key);
+    } else {
+      Get.find<RxString>(tag: key).value = init_getter();
     }
   }
 
@@ -244,4 +284,53 @@ class PeerStringOption {
 
   static RxString find(String id, String opt) =>
       Get.find<RxString>(tag: tag(id, opt));
+}
+
+class UnreadChatCountState {
+  static String tag(id) => 'unread_chat_count_$id';
+
+  static void init(String id) {
+    final key = tag(id);
+    if (!Get.isRegistered(tag: key)) {
+      final RxInt state = RxInt(0);
+      Get.put(state, tag: key);
+    } else {
+      Get.find<RxInt>(tag: key).value = 0;
+    }
+  }
+
+  static void delete(String id) {
+    final key = tag(id);
+    if (Get.isRegistered(tag: key)) {
+      Get.delete(tag: key);
+    }
+  }
+
+  static RxInt find(String id) => Get.find<RxInt>(tag: tag(id));
+}
+
+initSharedStates(String id) {
+  PrivacyModeState.init(id);
+  BlockInputState.init(id);
+  CurrentDisplayState.init(id);
+  KeyboardEnabledState.init(id);
+  ShowRemoteCursorState.init(id);
+  RemoteCursorMovedState.init(id);
+  FingerprintState.init(id);
+  PeerBoolOption.init(id, 'zoom-cursor', () => false);
+  UnreadChatCountState.init(id);
+  if (isMobile) ConnectionTypeState.init(id); // desktop in other places
+}
+
+removeSharedStates(String id) {
+  PrivacyModeState.delete(id);
+  BlockInputState.delete(id);
+  CurrentDisplayState.delete(id);
+  ShowRemoteCursorState.delete(id);
+  KeyboardEnabledState.delete(id);
+  RemoteCursorMovedState.delete(id);
+  FingerprintState.delete(id);
+  PeerBoolOption.delete(id, 'zoom-cursor');
+  UnreadChatCountState.delete(id);
+  if (isMobile) ConnectionTypeState.delete(id);
 }

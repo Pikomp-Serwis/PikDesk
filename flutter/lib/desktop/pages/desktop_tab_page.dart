@@ -23,7 +23,7 @@ class DesktopTabPage extends StatefulWidget {
       DesktopTabController tabController = Get.find();
       tabController.add(TabInfo(
           key: kTabLabelSettingPage,
-          label: translate(kTabLabelSettingPage),
+          label: kTabLabelSettingPage,
           selectedIcon: Icons.build_sharp,
           unselectedIcon: Icons.build_outlined,
           page: DesktopSettingPage(
@@ -46,7 +46,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
     RemoteCountState.init();
     tabController.add(TabInfo(
         key: kTabLabelHomePage,
-        label: translate(kTabLabelHomePage),
+        label: kTabLabelHomePage,
         selectedIcon: Icons.home_sharp,
         unselectedIcon: Icons.home_outlined,
         closable: false,
@@ -65,7 +65,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   Widget build(BuildContext context) {
     final tabWidget = Container(
         child: Scaffold(
-            backgroundColor: Theme.of(context).backgroundColor,
+            backgroundColor: Theme.of(context).colorScheme.background,
             body: DesktopTab(
               controller: tabController,
               tail: ActionIcon(
@@ -75,7 +75,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
                 isClose: false,
               ),
             )));
-    return Platform.isMacOS
+    return Platform.isMacOS || kUseCompatibleUiMode
         ? tabWidget
         : Obx(
             () => DragToResizeArea(

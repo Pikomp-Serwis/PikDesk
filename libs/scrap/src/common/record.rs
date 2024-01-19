@@ -1,3 +1,4 @@
+use crate::CodecFormat;
 #[cfg(feature = "hwcodec")]
 use hbb_common::anyhow::anyhow;
 use hbb_common::{
@@ -21,13 +22,6 @@ use webm::mux::{self, Segment, Track, VideoTrack, Writer};
 
 const MIN_SECS: u64 = 1;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum RecordCodecID {
-    VP9,
-    H264,
-    H265,
-}
-
 #[derive(Debug, Clone)]
 pub struct RecorderContext {
     pub server: bool,
@@ -36,7 +30,7 @@ pub struct RecorderContext {
     pub filename: String,
     pub width: usize,
     pub height: usize,
-    pub codec_id: RecordCodecID,
+    pub format: CodecFormat,
     pub tx: Option<Sender<RecordState>>,
 }
 
@@ -55,14 +49,18 @@ impl RecorderContext {
         }
         let file = if self.server { "s" } else { "c" }.to_string()
             + &self.id.clone()
-            + &chrono::Local::now().format("_%Y%m%d%H%M%S").to_string()
-            + if self.codec_id == RecordCodecID::VP9 {
+            + &chrono::Local::now().format("_%Y%m%d%H%M%S%3f_").to_string()
+            + &self.format.to_string().to_lowercase()
+            + if self.format == CodecFormat::VP9
+                || self.format == CodecFormat::VP8
+                || self.format == CodecFormat::AV1
+            {
                 ".webm"
             } else {
                 ".mp4"
             };
         self.filename = PathBuf::from(&dir).join(file).to_string_lossy().to_string();
-        log::info!("video will save to:{}", self.filename);
+        log::info!("video will save to {}", self.filename);
         Ok(())
     }
 }
@@ -88,6 +86,7 @@ pub enum RecordState {
 pub struct Recorder {
     pub inner: Box<dyn RecorderApi>,
     ctx: RecorderContext,
+    pts: Option<i64>,
 }
 
 impl Deref for Recorder {
@@ -107,15 +106,17 @@ impl DerefMut for Recorder {
 impl Recorder {
     pub fn new(mut ctx: RecorderContext) -> ResultType<Self> {
         ctx.set_filename()?;
-        let recorder = match ctx.codec_id {
-            RecordCodecID::VP9 => Recorder {
+        let recorder = match ctx.format {
+            CodecFormat::VP8 | CodecFormat::VP9 | CodecFormat::AV1 => Recorder {
                 inner: Box::new(WebmRecorder::new(ctx.clone())?),
                 ctx,
+                pts: None,
             },
             #[cfg(feature = "hwcodec")]
             _ => Recorder {
                 inner: Box::new(HwRecorder::new(ctx.clone())?),
                 ctx,
+                pts: None,
             },
             #[cfg(not(feature = "hwcodec"))]
             _ => bail!("unsupported codec type"),
@@ -126,14 +127,17 @@ impl Recorder {
 
     fn change(&mut self, mut ctx: RecorderContext) -> ResultType<()> {
         ctx.set_filename()?;
-        self.inner = match ctx.codec_id {
-            RecordCodecID::VP9 => Box::new(WebmRecorder::new(ctx.clone())?),
+        self.inner = match ctx.format {
+            CodecFormat::VP8 | CodecFormat::VP9 | CodecFormat::AV1 => {
+                Box::new(WebmRecorder::new(ctx.clone())?)
+            }
             #[cfg(feature = "hwcodec")]
             _ => Box::new(HwRecorder::new(ctx.clone())?),
             #[cfg(not(feature = "hwcodec"))]
             _ => bail!("unsupported codec type"),
         };
         self.ctx = ctx;
+        self.pts = None;
         self.send_state(RecordState::NewFile(self.ctx.filename.clone()));
         Ok(())
     }
@@ -148,42 +152,82 @@ impl Recorder {
 
     pub fn write_frame(&mut self, frame: &video_frame::Union) -> ResultType<()> {
         match frame {
-            video_frame::Union::Vp9s(vp9s) => {
-                if self.ctx.codec_id != RecordCodecID::VP9 {
+            video_frame::Union::Vp8s(vp8s) => {
+                if self.ctx.format != CodecFormat::VP8 {
                     self.change(RecorderContext {
-                        codec_id: RecordCodecID::VP9,
+                        format: CodecFormat::VP8,
                         ..self.ctx.clone()
                     })?;
                 }
-                vp9s.frames.iter().map(|f| self.write_video(f)).count();
+                for f in vp8s.frames.iter() {
+                    self.check_pts(f.pts)?;
+                    self.write_video(f);
+                }
+            }
+            video_frame::Union::Vp9s(vp9s) => {
+                if self.ctx.format != CodecFormat::VP9 {
+                    self.change(RecorderContext {
+                        format: CodecFormat::VP9,
+                        ..self.ctx.clone()
+                    })?;
+                }
+                for f in vp9s.frames.iter() {
+                    self.check_pts(f.pts)?;
+                    self.write_video(f);
+                }
+            }
+            video_frame::Union::Av1s(av1s) => {
+                if self.ctx.format != CodecFormat::AV1 {
+                    self.change(RecorderContext {
+                        format: CodecFormat::AV1,
+                        ..self.ctx.clone()
+                    })?;
+                }
+                for f in av1s.frames.iter() {
+                    self.check_pts(f.pts)?;
+                    self.write_video(f);
+                }
             }
             #[cfg(feature = "hwcodec")]
             video_frame::Union::H264s(h264s) => {
-                if self.ctx.codec_id != RecordCodecID::H264 {
+                if self.ctx.format != CodecFormat::H264 {
                     self.change(RecorderContext {
-                        codec_id: RecordCodecID::H264,
+                        format: CodecFormat::H264,
                         ..self.ctx.clone()
                     })?;
                 }
-                if self.ctx.codec_id == RecordCodecID::H264 {
-                    h264s.frames.iter().map(|f| self.write_video(f)).count();
+                for f in h264s.frames.iter() {
+                    self.check_pts(f.pts)?;
+                    self.write_video(f);
                 }
             }
             #[cfg(feature = "hwcodec")]
             video_frame::Union::H265s(h265s) => {
-                if self.ctx.codec_id != RecordCodecID::H265 {
+                if self.ctx.format != CodecFormat::H265 {
                     self.change(RecorderContext {
-                        codec_id: RecordCodecID::H265,
+                        format: CodecFormat::H265,
                         ..self.ctx.clone()
                     })?;
                 }
-                if self.ctx.codec_id == RecordCodecID::H265 {
-                    h265s.frames.iter().map(|f| self.write_video(f)).count();
+                for f in h265s.frames.iter() {
+                    self.check_pts(f.pts)?;
+                    self.write_video(f);
                 }
             }
             _ => bail!("unsupported frame type"),
         }
         self.send_state(RecordState::NewFrame);
+        Ok(())
+    }
+
+    fn check_pts(&mut self, pts: i64) -> ResultType<()> {
+        // https://stackoverflow.com/questions/76379101/how-to-create-one-playable-webm-file-from-two-different-video-tracks-with-same-c
+        let old_pts = self.pts;
+        self.pts = Some(pts);
+        if old_pts.clone().unwrap_or_default() > pts {
+            log::info!("pts {:?} -> {}, change record filename", old_pts, pts);
+            self.change(self.ctx.clone())?;
+        }
         Ok(())
     }
 
@@ -221,8 +265,21 @@ impl RecorderApi for WebmRecorder {
             ctx.width as _,
             ctx.height as _,
             None,
-            mux::VideoCodecId::VP9,
+            if ctx.format == CodecFormat::VP9 {
+                mux::VideoCodecId::VP9
+            } else if ctx.format == CodecFormat::VP8 {
+                mux::VideoCodecId::VP8
+            } else {
+                mux::VideoCodecId::AV1
+            },
         );
+        if ctx.format == CodecFormat::AV1 {
+            // [129, 8, 12, 0] in 3.6.0, but zero works
+            let codec_private = vec![0, 0, 0, 0];
+            if !webm.set_codec_private(vt.track_number(), &codec_private) {
+                bail!("Failed to set codec private");
+            }
+        }
         Ok(WebmRecorder {
             vt,
             webm: Some(webm),
@@ -253,7 +310,7 @@ impl RecorderApi for WebmRecorder {
 
 impl Drop for WebmRecorder {
     fn drop(&mut self) {
-        std::mem::replace(&mut self.webm, None).map_or(false, |webm| webm.finalize(None));
+        let _ = std::mem::replace(&mut self.webm, None).map_or(false, |webm| webm.finalize(None));
         let mut state = RecordState::WriteTail;
         if !self.written || self.start.elapsed().as_secs() < MIN_SECS {
             std::fs::remove_file(&self.ctx.filename).ok();
@@ -279,7 +336,7 @@ impl RecorderApi for HwRecorder {
             filename: ctx.filename.clone(),
             width: ctx.width,
             height: ctx.height,
-            is265: ctx.codec_id == RecordCodecID::H265,
+            is265: ctx.format == CodecFormat::H265,
             framerate: crate::hwcodec::DEFAULT_TIME_BASE[1] as _,
         })
         .map_err(|_| anyhow!("Failed to create hardware muxer"))?;
