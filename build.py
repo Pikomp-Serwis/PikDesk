@@ -452,10 +452,10 @@ def build_flutter_windows(version, features):
         f'python3 ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2}/polidesk.ex')
     os.chdir('../..')
     if os.path.exists('./polidesk_portable.exe'):
-        os.replace('./target/release/rustdesk-portable-packer.exe',
+        os.replace('./target/release/polidesk-portable-packer.exe',
                    './polidesk_portable.exe')
     else:
-        os.rename('./target/release/rustdesk-portable-packer.exe',
+        os.rename('./target/release/polidesk-portable-packer.exe',
                   './polidesk_portable.exe')
     print(
         f'output location: {os.path.abspath(os.curdir)}/polidesk_portable.exe')
