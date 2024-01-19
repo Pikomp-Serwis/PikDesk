@@ -449,7 +449,7 @@ def build_flutter_windows(version, features):
     os.chdir('libs/portable')
     system2('pip3 install -r requirements.txt')
     system2(
-        f'python3 ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2}/polidesk.ex')
+        f'python3 ./generate.py -f ../../{flutter_build_dir_2} -o . -e ../../{flutter_build_dir_2}/polidesk.exe')
     os.chdir('../..')
     if os.path.exists('./polidesk_portable.exe'):
         os.replace('./target/release/polidesk-portable-packer.exe',
@@ -499,7 +499,7 @@ def main():
             return
         system2('cargo build --release --features ' + features)
         # system2('upx.exe target/release/polidesk.exe')
-        system2('mv target/release/polidesk.exe target/release/polidesk.exe')
+        system2('mv target/release/polidesk.exe target/release/PoliDesk.exe')
         pa = os.environ.get('P')
         if pa:
             system2(
@@ -508,7 +508,7 @@ def main():
         else:
             print('Not signed')
         system2(
-            f'cp -rf target/release/polidesk.exe {res_dir}')
+            f'cp -rf target/release/PoliDesk.exe {res_dir}')
         os.chdir('libs/portable')
         system2('pip3 install -r requirements.txt')
         system2(
