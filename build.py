@@ -220,6 +220,10 @@ def download_extract_features(features, res_dir):
             req(feat_info['checksum_url']))
         for line in checksum_md5_response.read().decode('utf-8').splitlines():
             if line.split()[1] == download_filename:
+                print("current file downloading url:")
+                print(feat_info['zip_url'])
+                print("current file checksum:")
+                print(feat_info['checksum_url'])
                 checksum_md5 = line.split()[0]
                 filename, _headers = urllib.request.urlretrieve(feat_info['zip_url'],
                                                                 download_filename)
